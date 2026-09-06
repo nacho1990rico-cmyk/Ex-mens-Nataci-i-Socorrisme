@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Examen</title>
+<style>
+  :root{
+    --paper: #EEF1F2;
+    --card: #FFFFFF;
+    --ink: #1B2430;
+    --ink-soft: #4A5568;
+    --line: #C9CDD1;
+    --red: #A63D2F;
+    --teal: #3E6259;
+    --teal-soft: #E1EAE7;
+    --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', serif;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{ box-sizing: border-box; }
+  html,body{
+    margin:0; padding:0; min-height:100vh;
+    background:var(--paper); color:var(--ink);
+    font-family:var(--sans);
+    -webkit-user-select:none; user-select:none;
+  }
+  #app{ min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:32px 16px 80px; }
+  .card{
+    width:100%; max-width:640px; background:var(--card);
+    border-top:4px solid var(--red);
+    box-shadow: 0 1px 2px rgba(27,36,48,0.08);
+    padding:32px 28px;
+  }
+  .hidden{ display:none !important; }
+  h1{ font-family:var(--serif); font-size:1.6rem; margin:0 0 4px; font-weight:600; }
+  .subtitle{ color:var(--ink-soft); font-size:0.92rem; margin:0 0 24px; line-height:1.5;}
+  label{ display:block; font-size:0.85rem; color:var(--ink-soft); margin-bottom:6px; }
+  input[type=text]{
+    width:100%; padding:10px 12px; font-size:1rem; font-family:var(--sans);
+    border:1px solid var(--line); background:#fff; color:var(--ink); margin-bottom:18px;
+  }
+  input[type=text]:focus{ outline:2px solid var(--teal); outline-offset:1px; }
+  textarea{
+    width:100%; font-family:var(--sans); font-size:0.85rem; padding:10px 12px;
+    border:1px solid var(--line); resize:none; margin-bottom:16px; color:var(--ink); background:#fafafa;
+  }
+  button{
+    font-family:var(--sans); font-size:0.95rem; font-weight:600; cursor:pointer;
+    border:none; padding:12px 22px; background:var(--ink); color:#fff;
+  }
+  button:hover{ background:#000; }
+  button.secondary{ background:transparent; color:var(--ink); border:1px solid var(--line); }
+  button.secondary:hover{ background:#f2f2f2; }
+  button:disabled{ opacity:0.4; cursor:not-allowed; }
+  .row{ display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+  .examheader{ display:flex; justify-content:space-between; align-items:baseline; border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:22px;}
+  .examheader h2{ font-family:var(--serif); font-size:1.15rem; margin:0; }
+  .timer{ font-variant-numeric: tabular-nums; font-size:1.05rem; font-weight:600; color:var(--ink); }
+  .timer.low{ color:var(--red); }
+  .progress{ font-size:0.85rem; color:var(--ink-soft); margin-bottom:6px; }
+  .qtext{ font-size:1.12rem; line-height:1.5; margin:0 0 20px; }
+  .option{
+    display:flex; align-items:flex-start; gap:12px; padding:12px 14px;
+    border:1px solid var(--line); margin-bottom:10px; cursor:pointer;
+  }
+  .option:hover{ border-color:var(--ink-soft); }
+  .option.selected{ border-color:var(--teal); background:var(--teal-soft); }
+  .option input{ margin-top:3px; }
+  .navrow{ display:flex; justify-content:space-between; margin-top:26px; }
+  #violation-banner{
+    position:fixed; top:0; left:0; right:0; z-index:50;
+    background:var(--red); color:#fff; text-align:center;
+    padding:14px 16px; font-size:0.95rem; font-weight:600;
+    transform:translateY(-100%); transition:transform 0.25s ease;
+  }
+  #violation-banner.visible{ transform:translateY(0); }
+  .reviewlist{ list-style:none; margin:0 0 22px; padding:0; }
+  .reviewlist li{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:10px 12px; border-bottom:1px solid var(--line); cursor:pointer; font-size:0.92rem;
+  }
+  .reviewlist li:hover{ background:#f7f7f7; }
+  .status-ok{ color:var(--teal); font-weight:600; }
+  .status-pending{ color:var(--red); font-weight:600; }
+  .finished-icon{ font-size:2rem; margin-bottom:6px; }
+  .note{ font-size:0.8rem; color:var(--ink-soft); margin-top:6px; line-height:1.5; }
+</style>
+</head>
+<body>
+<div id="violation-banner"></div>
+<div id="app">
+
+  <!-- PANTALLA DE INICIO -->
+  <div id="screen-start" class="card">
+    <h1 id="start-title">Título del examen</h1>
+    <p class="subtitle" id="start-subtitle"></p>
+    <label for="input-name">Nombre y apellidos</label>
+    <input type="text" id="input-name" placeholder="Ej: Marta García López" autocomplete="off">
+    <label for="input-group">Grupo o clase (opcional)</label>
+    <input type="text" id="input-group" placeholder="Ej: GES2A" autocomplete="off">
+    <button id="btn-start">Empezar examen</button>
+  </div>
+
+  <!-- PANTALLA DE EXAMEN -->
+  <div id="screen-exam" class="card hidden">
+    <div class="examheader">
+      <h2 id="exam-title-small">Título</h2>
+      <span class="timer" id="timer">--:--</span>
+    </div>
+    <div class="progress" id="progress-label">Pregunta 1 de 1</div>
+    <p class="qtext" id="qtext"></p>
+    <div id="options"></div>
+    <div class="navrow">
+      <button class="secondary" id="btn-prev">Anterior</button>
+      <button id="btn-next">Siguiente</button>
+    </div>
+  </div>
+
+  <!-- PANTALLA DE REVISIÓN -->
+  <div id="screen-review" class="card hidden">
+    <h1>Revisar antes de entregar</h1>
+    <p class="subtitle">Toca una pregunta para volver a ella. Cuando estés listo, entrega el examen.</p>
+    <ul class="reviewlist" id="review-list"></ul>
+    <button id="btn-submit">Entregar examen</button>
+  </div>
+
+  <!-- PANTALLA FINAL -->
+  <div id="screen-finished" class="card hidden">
+    <div class="finished-icon">✓</div>
+    <h1>Examen entregado</h1>
+    <p class="subtitle" id="finished-message"></p>
+    <p class="note" id="finished-status">Enviando tu resultado…</p>
+    <details style="margin-top:18px;">
+      <summary style="cursor:pointer; color:var(--ink-soft); font-size:0.85rem;">Ver resumen (por si algo falla)</summary>
+      <textarea id="summary-box" rows="6" readonly style="margin-top:10px;"></textarea>
+      <div class="row">
+        <button class="secondary" id="btn-copy">Copiar resultado</button>
+        <button class="secondary" id="btn-download">Descargar (.txt)</button>
+      </div>
+    </details>
+  </div>
+
+  <!-- Formulario oculto: envía el resultado a tu Google Form sin que el alumno vea nada -->
+  <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
+  <form id="google-form" method="POST" target="hidden_iframe" style="display:none;">
+    <input type="text" id="gf-nombre">
+    <input type="text" id="gf-grupo">
+    <input type="text" id="gf-nota">
+    <input type="text" id="gf-avisos">
+    <input type="text" id="gf-motivo">
+  </form>
+
+</div>
+
+<script>
+/* ============================================================
+   ✏️  EDITA SOLO ESTA PARTE PARA CADA EXAMEN
+   ============================================================ */
+const CONFIG = {
+  examTitle: "Examen socorrisme RA 1",         // Aparece arriba del examen
+  // Conexión con tu Google Form — el resultado se envía solo, sin que el alumno haga nada
+  googleForm: {
+    actionUrl: "https://docs.google.com/forms/d/e/1FAIpQLSefFXl5L0RlSMLfPFDh87csPIzSVG8g-Jsq94dl94AVceyoOw/formResponse",
+    entryNombre: "entry.1200009891",
+    entryGrupo: "entry.9384732",
+    entryNota: "entry.735306376",
+    entryAvisos: "entry.36221568",
+    entryMotivo: "entry.799380067"
+  },
+  instructions: "Per cada resposta correcta se suma 1 punt. Per cada incorrecta es resta 0,50 punts. Per cada resposta no contestada ni suma ni resta, són 0 punts. Hi ha una pregunta en què totes les respostes són correctes.",
+  timeLimitMinutes: 45,                        // Duración del examen en minutos
+  violationLimit: 3,                           // Avisos permitidos antes de entregar automáticamente
+  showScoreToStudent: true,                    // true = el alumno ve su nota al entregar
+
+  // Puntos por acierto, por fallo y por pregunta en blanco
+  scoring: { correct: 1, incorrect: -0.5, blank: 0 },
+
+  questions: [
+    {
+      text: "Quina diferència hi ha entre els primers auxilis emergents i no emergents?",
+      options: [
+        "Els emergents són en els que no perilla la vida de la víctima i els no emergents perilla la vida de la víctima.",
+        "Els emergents són en els que intervé la policia i l'ambulància, en canvi, en els no emergents pots actuar tu mateix/a.",
+        "Els emergents són els que es realitzen quan perilla la vida de la víctima i els no emergents són els que la vida de la víctima no perilla."
+      ],
+      correct: 2
+    },
+    {
+      text: "Quin és el número d'emergències a Espanya?",
+      options: ["911", "121", "112"],
+      correct: 2
+    },
+    {
+      text: "Quina és la diferència entre símptoma i signe?",
+      options: [
+        "El símptoma és allò subjectiu que presenta el pacient i no es pot mesurar i el signe, allò que presenta el pacient i que és objectiu i, per tant, podem valorar.",
+        "El signe és allò subjectiu que presenta el pacient i no es pot mesurar i el símptoma, allò que presenta el pacient i que és objectiu i, per tant, podem valorar.",
+        "No hi ha cap diferència, són sinònims."
+      ],
+      correct: 0
+    },
+    {
+      text: "A quantes pulsacions estaria una persona en situació de repòs?",
+      options: ["Entre 30 i 50 bpm", "Entre 60 i 100 bpm", "Entre 80 i 120 bpm"],
+      correct: 1
+    },
+    {
+      text: "A l'absència de respiració se li denomina:",
+      options: ["Taquipnea", "Bradipnea", "Apnea"],
+      correct: 2
+    },
+    {
+      text: "Per comprovar l'estat de consciència d'una persona ens regim per estímuls:",
+      options: ["Sonors, tàctils i dolorosos", "Visuals, tàctils i auditius", "Cap de les anteriors"],
+      correct: 1
+    },
+    {
+      text: "Què és el PAS?",
+      options: ["Protegir, Abstenir, Socórrer", "Protegir, Avisar, Socórrer", "Prevenir, Alertar, Socórrer"],
+      correct: 1
+    },
+    {
+      text: "Què és la miosi?",
+      options: ["Les pupil·les dilatades", "Les pupil·les contretes", "Les pupil·les són irregulars"],
+      correct: 1
+    },
+    {
+      text: "Durant l'avaluació primària si la persona no respon, però respira normalment. Què faries?",
+      options: [
+        "Trucar al 112 i realitzar compressions toràciques",
+        "Posar la víctima en PLS",
+        "Cap de les anteriors, manca informació"
+      ],
+      correct: 2
+    },
+    {
+      text: "La maniobra front-mentó s'utilitza per a:",
+      options: ["Obrir la via aèria de la víctima.", "Comprovar si la víctima respira amb normalitat", "Ambdues opcions són correctes"],
+      correct: 2
+    },
+    {
+      text: "El primer que faré si em trobo una víctima a terra…",
+      options: ["Abans d'apropar-me em protegiré a mi, a la víctima i l'entorn", "Miraré si respira", "Iniciaré RCP"],
+      correct: 0
+    },
+    {
+      text: "La cianosi és:",
+      options: [
+        "Coloració blavosa de la pell a causa d'un trastorn hepàtic",
+        "La Tensió Arterial elevada",
+        "L'oxigenació de la sang no és correcte"
+      ],
+      correct: 2
+    },
+    {
+      text: "A la valoració secundària s'observen…",
+      options: ["Hemorràgies, fractures, contusions", "Signes vitals", "Consciència, respiració i pulsacions"],
+      correct: 0
+    },
+    {
+      text: "La dispnea és:",
+      options: ["Respiració ràpida i superficial", "Respiració dèbil i profunda", "Respiració amb dificultats i/o falta d'aire"],
+      correct: 2
+    },
+    {
+      text: "Els primers auxilis tenen com a objectiu:",
+      options: ["Evitar l'empitjorament del dany produït", "Facilitat l'actuació de l'especialista", "Ambdues opcions són correctes"],
+      correct: 2
+    },
+    {
+      text: "Dins del decàleg del socorrisme trobem…",
+      options: ["Ha d'actuar amb tranquil·litat i rapidesa", "Mantenir a la víctima calenta", "Moure'l amb precaució"],
+      correct: [0, 1, 2]
+    },
+    {
+      text: "A la farmaciola es distingeix el material de…",
+      options: [
+        "Protecció (mascareta, guants…) i el de cures (gases, esparadrap, pinces…)",
+        "Autoprotecció (mascareta, guants…) i el de cures (gases, esparadrap, pinces…)",
+        "Autoprotecció (gases, esparadrap, pinces…) i el de cures (mascareta, guants…)"
+      ],
+      correct: 1
+    },
+    {
+      text: "Quins són alguns factors externs que poden comprometre la seguretat del socorrista (autoprotecció) quan parlem de la P (PAS)?",
+      options: ["Edat, pes, talla de la víctima", "Radiacions, manca de llum, condicions climatològiques", "Cap de les anteriors"],
+      correct: 1
+    },
+    {
+      text: "Quina d'aquestes afirmacions és falsa?",
+      options: [
+        "El dit polze no s'utilitza per valorar el pols",
+        "La coloració de la pell vermella es pot relacionar amb una hipertèrmia",
+        "Una Pressió Arterial normal és de: 129 / 80mmHg"
+      ],
+      correct: 0
+    },
+    {
+      text: "La B de l'ABC és per comprovar:",
+      options: ["La respiració", "L'estat de consciència", "Les pulsacions"],
+      correct: 0
+    }
+  ]
+};
+/* ============================================================
+   FIN DE LA PARTE EDITABLE — no hace falta tocar nada más abajo
+   ============================================================ */
+
+function slugify(s){
+  return (s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"") || "resultado";
+}
+
+// ---------- estado ----------
+let studentName = "", studentGroup = "";
+let currentIndex = 0;
+let answers = {};
+let violations = [];
+let violationCount = 0;
+let lastViolationTime = 0;
+let examActive = false;
+let finished = false;
+let manualFullscreenExit = false;
+let remainingSeconds = CONFIG.timeLimitMinutes * 60;
+let timerInterval = null;
+
+// ---------- elementos ----------
+const el = id => document.getElementById(id);
+const screens = {
+  start: el('screen-start'), exam: el('screen-exam'),
+  review: el('screen-review'), finished: el('screen-finished')
+};
+function showScreen(name){
+  Object.values(screens).forEach(s => s.classList.add('hidden'));
+  screens[name].classList.remove('hidden');
+}
+
+// ---------- pantalla de inicio ----------
+el('start-title').textContent = CONFIG.examTitle;
+el('start-subtitle').textContent = CONFIG.instructions;
+el('exam-title-small').textContent = CONFIG.examTitle;
+
+el('btn-start').addEventListener('click', () => {
+  const name = el('input-name').value.trim();
+  if(!name){ el('input-name').focus(); el('input-name').style.borderColor = 'var(--red)'; return; }
+  studentName = name;
+  studentGroup = el('input-group').value.trim();
+  startExam();
+});
+
+// ---------- inicio del examen ----------
+function enterFullscreenSafe(){
+  const elDoc = document.documentElement;
+  const req = elDoc.requestFullscreen || elDoc.webkitRequestFullscreen || elDoc.msRequestFullscreen;
+  if(req){ try{ req.call(elDoc).catch(()=>{}); }catch(e){} }
+}
+function exitFullscreenSafe(){
+  manualFullscreenExit = true;
+  const exitFn = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+  if(exitFn && (document.fullscreenElement || document.webkitFullscreenElement)){
+    try{ exitFn.call(document).catch(()=>{}); }catch(e){}
+  }
+}
+
+function startExam(){
+  enterFullscreenSafe();
+  examActive = true;
+  showScreen('exam');
+  renderQuestion();
+  timerInterval = setInterval(tickTimer, 1000);
+  updateTimerDisplay();
+}
+
+function tickTimer(){
+  remainingSeconds--;
+  updateTimerDisplay();
+  if(remainingSeconds <= 0){
+    clearInterval(timerInterval);
+    submitExam("tiempo agotado");
+  }
+}
+function updateTimerDisplay(){
+  const m = Math.max(0, Math.floor(remainingSeconds/60));
+  const s = Math.max(0, remainingSeconds%60);
+  const label = `${m}:${s.toString().padStart(2,'0')}`;
+  const t = el('timer');
+  t.textContent = label;
+  t.classList.toggle('low', remainingSeconds <= 60);
+}
+
+// ---------- preguntas ----------
+function renderQuestion(){
+  const q = CONFIG.questions[currentIndex];
+  el('progress-label').textContent = `Pregunta ${currentIndex+1} de ${CONFIG.questions.length}`;
+  el('qtext').textContent = q.text;
+  const wrap = el('options');
+  wrap.innerHTML = "";
+  q.options.forEach((opt, i) => {
+    const div = document.createElement('div');
+    div.className = 'option' + (answers[currentIndex] === i ? ' selected' : '');
+    div.innerHTML = `<input type="radio" name="opt" ${answers[currentIndex]===i?'checked':''}><span>${opt}</span>`;
+    div.addEventListener('click', () => { answers[currentIndex] = i; renderQuestion(); });
+    wrap.appendChild(div);
+  });
+  el('btn-prev').disabled = currentIndex === 0;
+  el('btn-next').textContent = currentIndex === CONFIG.questions.length - 1 ? "Revisar y entregar" : "Siguiente";
+}
+el('btn-prev').addEventListener('click', () => { currentIndex--; renderQuestion(); });
+el('btn-next').addEventListener('click', () => {
+  if(currentIndex < CONFIG.questions.length - 1){ currentIndex++; renderQuestion(); }
+  else { showReview(); }
+});
+
+function showReview(){
+  showScreen('review');
+  const list = el('review-list');
+  list.innerHTML = "";
+  CONFIG.questions.forEach((q, i) => {
+    const li = document.createElement('li');
+    const answered = answers[i] !== undefined;
+    li.innerHTML = `<span>Pregunta ${i+1}</span><span class="${answered?'status-ok':'status-pending'}">${answered?'Respondida':'Sin responder'}</span>`;
+    li.addEventListener('click', () => { currentIndex = i; showScreen('exam'); renderQuestion(); });
+    list.appendChild(li);
+  });
+}
+el('btn-submit').addEventListener('click', () => submitExam("entregado por el alumno"));
+
+// ---------- detección de salidas ----------
+function handleViolation(reason){
+  if(!examActive || finished) return;
+  const now = Date.now();
+  if(now - lastViolationTime < 1500) return;
+  lastViolationTime = now;
+  violations.push({ reason, time: new Date().toISOString() });
+  violationCount++;
+  showBanner(`Aviso ${violationCount} de ${CONFIG.violationLimit}: se ha detectado ${reason}.`);
+  if(violationCount >= CONFIG.violationLimit){
+    submitExam("entregado automáticamente por exceso de salidas de pantalla");
+  }
+}
+let bannerTimeout = null;
+function showBanner(msg){
+  const b = el('violation-banner');
+  b.textContent = msg;
+  b.classList.add('visible');
+  clearTimeout(bannerTimeout);
+  bannerTimeout = setTimeout(() => b.classList.remove('visible'), 4000);
+}
+document.addEventListener('visibilitychange', () => {
+  if(examActive && document.hidden) handleViolation("un cambio de pestaña o de aplicación");
+});
+window.addEventListener('blur', () => {
+  if(examActive) handleViolation("una pérdida de foco de la ventana");
+});
+document.addEventListener('fullscreenchange', onFullscreenChange);
+document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+function onFullscreenChange(){
+  const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  if(examActive && !isFs && !manualFullscreenExit) handleViolation("una salida de pantalla completa");
+  manualFullscreenExit = false;
+}
+
+// ---------- bloqueo de copiar/pegar/menú contextual ----------
+['contextmenu','copy','cut','paste'].forEach(evt => {
+  document.addEventListener(evt, e => { if(examActive) e.preventDefault(); });
+});
+document.addEventListener('keydown', e => {
+  if(!examActive) return;
+  const key = e.key.toLowerCase();
+  const ctrlCombo = (e.ctrlKey || e.metaKey) && ['c','v','x','u','s','p'].includes(key);
+  const devtools = (e.ctrlKey && e.shiftKey && ['i','j','c'].includes(key)) || key === 'f12';
+  if(ctrlCombo || devtools) e.preventDefault();
+});
+
+// ---------- corrección y entrega ----------
+function isCorrectAnswer(q, given){
+  if(Array.isArray(q.correct)) return q.correct.includes(given);
+  return given === q.correct;
+}
+function computeScore(){
+  const s = CONFIG.scoring || { correct: 1, incorrect: -0.5, blank: 0 };
+  let total = 0;
+  CONFIG.questions.forEach((q, i) => {
+    const given = answers[i];
+    if(given === undefined) total += s.blank;
+    else if(isCorrectAnswer(q, given)) total += s.correct;
+    else total += s.incorrect;
+  });
+  return Math.round(total * 100) / 100;
+}
+function maxPossibleScore(){
+  const s = CONFIG.scoring || { correct: 1 };
+  return Math.round(CONFIG.questions.length * s.correct * 100) / 100;
+}
+
+function buildSummary(score, total, reason){
+  const lines = [
+    `Examen: ${CONFIG.examTitle}`,
+    `Alumno/a: ${studentName}`,
+    studentGroup ? `Grupo: ${studentGroup}` : null,
+    `Nota: ${score} / ${total}`,
+    `Avisos de salida de pantalla: ${violationCount}`,
+    `Motivo de entrega: ${reason}`,
+    `Fecha: ${new Date().toLocaleString()}`
+  ].filter(Boolean);
+  return lines.join('\n');
+}
+
+function submitExam(reason){
+  if(finished) return;
+  finished = true;
+  examActive = false;
+  clearInterval(timerInterval);
+  exitFullscreenSafe();
+
+  const score = computeScore();
+  const total = maxPossibleScore();
+  const summary = buildSummary(score, total, reason);
+
+  showScreen('finished');
+  let msg = `Gracias, ${studentName}. Tu examen ha terminado.`;
+  if(CONFIG.showScoreToStudent) msg += ` Nota: ${score} de ${total}.`;
+  if(reason !== "entregado por el alumno") msg += ` (Motivo de entrega: ${reason}.)`;
+  el('finished-message').textContent = msg;
+  el('summary-box').value = summary;
+  setupResultActions(summary);
+  sendToGoogleForm(score, total, reason);
+}
+
+function sendToGoogleForm(score, total, reason){
+  const gf = CONFIG.googleForm;
+  if(!gf || !gf.actionUrl) { el('finished-status').textContent = "No hay conexión configurada."; return; }
+  try{
+    const form = el('google-form');
+    form.action = gf.actionUrl;
+    el('gf-nombre').name = gf.entryNombre;
+    el('gf-grupo').name = gf.entryGrupo;
+    el('gf-nota').name = gf.entryNota;
+    el('gf-avisos').name = gf.entryAvisos;
+    el('gf-motivo').name = gf.entryMotivo;
+
+    el('gf-nombre').value = studentName;
+    el('gf-grupo').value = studentGroup;
+    el('gf-nota').value = `${score} / ${total}`;
+    el('gf-avisos').value = String(violationCount);
+    el('gf-motivo').value = reason;
+
+    form.submit();
+    el('finished-status').textContent = "Resultado enviado correctamente. Ya puedes cerrar esta ventana.";
+  }catch(err){
+    el('finished-status').textContent = "No se pudo enviar automáticamente. Abre \"Ver resumen\" abajo y avisa a tu profesor/a.";
+  }
+
+function setupResultActions(summary){
+  const copyBtn = el('btn-copy');
+  copyBtn.onclick = async () => {
+    try{
+      await navigator.clipboard.writeText(summary);
+    }catch(e){
+      const ta = el('summary-box');
+      ta.removeAttribute('readonly'); ta.focus(); ta.select();
+      document.execCommand('copy');
+      ta.setAttribute('readonly', 'true');
+    }
+    copyBtn.textContent = "Copiado ✓";
+    setTimeout(() => { copyBtn.textContent = "Copiar resultado"; }, 2000);
+  };
+
+  el('btn-download').onclick = () => {
+    const blob = new Blob([summary], { type: 'text/plain;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `resultado_${slugify(studentName)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+}
+</script>
+</body>
+</html>
