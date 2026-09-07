@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -150,17 +150,6 @@
     </details>
   </div>
 
-  <!-- Formulario oculto: envía el resultado a tu Google Form sin que el alumno vea nada -->
-  <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
-  <form id="google-form" method="POST" target="hidden_iframe" style="display:none;">
-    <input type="text" id="gf-nombre">
-    <input type="text" id="gf-grupo">
-    <input type="text" id="gf-nota">
-    <input type="text" id="gf-avisos">
-    <input type="text" id="gf-motivo">
-    <input type="text" id="gf-examen">
-  </form>
-
 </div>
 
 <script>
@@ -169,6 +158,8 @@
    ============================================================ */
 const CONFIG = {
   examTitle: "Examen socorrisme RA 1",         // Aparece arriba del examen
+  // Envío automático (invisible) del resultado a tu hoja de cálculo vía Apps Script
+  appsScriptUrl: "https://script.google.com/macros/s/AKfycbxLJON-0E47AWd_Y7hwi5rx_dYu8M0_hz0l1S9x-mqNXWIh0oOmPzcyZJIwM61DPzit/exec",
   // Conexión con tu Google Form — el resultado se envía solo, sin que el alumno haga nada
   googleForm: {
     actionUrl: "https://docs.google.com/forms/d/e/1FAIpQLSefFXl5L0RlSMLfPFDh87csPIzSVG8g-Jsq94dl94AVceyoOw/formResponse",
@@ -559,34 +550,26 @@ function submitExam(reason){
   el('finished-message').textContent = msg;
   el('summary-box').value = summary;
   setupResultActions(summary);
-  sendToGoogleForm(score, total, reason);
+  sendResultAutomatically(score, total, reason);
 }
 
-function sendToGoogleForm(score, total, reason){
-  const gf = CONFIG.googleForm;
-  if(!gf || !gf.actionUrl) { el('finished-status').textContent = "No hay conexión configurada."; return; }
-  try{
-    const form = el('google-form');
-    form.action = gf.actionUrl;
-    el('gf-nombre').name = gf.entryNombre;
-    el('gf-grupo').name = gf.entryGrupo;
-    el('gf-nota').name = gf.entryNota;
-    el('gf-avisos').name = gf.entryAvisos;
-    el('gf-motivo').name = gf.entryMotivo;
-    el('gf-examen').name = gf.entryExamen;
-
-    el('gf-nombre').value = studentName;
-    el('gf-grupo').value = studentGroup;
-    el('gf-nota').value = `${score} / ${total}`;
-    el('gf-avisos').value = String(violationCount);
-    el('gf-motivo').value = reason;
-    el('gf-examen').value = CONFIG.examTitle;
-
-    form.submit();
-    el('finished-status').textContent = "Resultado enviado correctamente. Ya puedes cerrar esta ventana.";
-  }catch(err){
-    el('finished-status').textContent = "No se pudo enviar automáticamente. Abre \"Ver resumen\" abajo y avisa a tu profesor/a.";
+function sendResultAutomatically(score, total, reason){
+  const statusEl = el('finished-status');
+  if(!CONFIG.appsScriptUrl){
+    statusEl.textContent = "No hay conexión configurada. Usa \"Ver resumen\" para enviarlo tú mismo/a.";
+    return;
   }
+  const body = new URLSearchParams({
+    examen: CONFIG.examTitle,
+    nombre: studentName,
+    grupo: studentGroup,
+    nota: `${score} / ${total}`,
+    avisos: String(violationCount),
+    motivo: reason
+  });
+  fetch(CONFIG.appsScriptUrl, { method: 'POST', mode: 'no-cors', body })
+    .then(() => { statusEl.textContent = "Resultado enviado correctamente. Ya puedes cerrar esta ventana."; })
+    .catch(() => { statusEl.textContent = "No se pudo enviar (¿sin conexión?). Abre \"Ver resumen\" y avisa a tu profesor/a."; });
 }
 
 function setupResultActions(summary){
