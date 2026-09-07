@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -100,8 +100,18 @@
 <div id="watermark"></div>
 <div id="app">
 
+  <!-- PANTALLA DE CÓDIGO DE ACCESO -->
+  <div id="screen-code" class="card hidden">
+    <h1>Codi d'accés</h1>
+    <p class="subtitle">Demana el codi al teu professor/a per començar l'examen.</p>
+    <label for="input-code">Codi</label>
+    <input type="text" id="input-code" placeholder="Codi d'accés" autocomplete="off">
+    <p class="note" id="code-error" style="color:var(--red); display:none;">Codi incorrecte, torna-ho a provar.</p>
+    <button id="btn-code">Continuar</button>
+  </div>
+
   <!-- PANTALLA DE INICIO -->
-  <div id="screen-start" class="card">
+  <div id="screen-start" class="card hidden">
     <h1 id="start-title">Título del examen</h1>
     <p class="subtitle" id="start-subtitle"></p>
     <label for="input-name">Nombre y apellidos</label>
@@ -158,6 +168,7 @@
    ============================================================ */
 const CONFIG = {
   examTitle: "RA 1 - Atenció a grups",         // Aparece arriba del examen
+  accessCode: "1234",                          // ✏️ Pon aquí el código (ej. "1234") o déjalo en "" para no pedir código
   // Envío automático (invisible) del resultado a tu hoja de cálculo vía Apps Script
   appsScriptUrl: "https://script.google.com/macros/s/AKfycbxLJON-0E47AWd_Y7hwi5rx_dYu8M0_hz0l1S9x-mqNXWIh0oOmPzcyZJIwM61DPzit/exec",
   // Conexión con tu Google Form — el resultado se envía solo, sin que el alumno haga nada
@@ -290,13 +301,31 @@ let timerInterval = null;
 // ---------- elementos ----------
 const el = id => document.getElementById(id);
 const screens = {
-  start: el('screen-start'), exam: el('screen-exam'),
+  code: el('screen-code'), start: el('screen-start'), exam: el('screen-exam'),
   review: el('screen-review'), finished: el('screen-finished')
 };
 function showScreen(name){
   Object.values(screens).forEach(s => s.classList.add('hidden'));
   screens[name].classList.remove('hidden');
 }
+
+// ---------- código de acceso ----------
+if(CONFIG.accessCode){
+  showScreen('code');
+} else {
+  showScreen('start');
+}
+el('btn-code').addEventListener('click', () => {
+  const entered = el('input-code').value.trim();
+  if(entered === String(CONFIG.accessCode)){
+    showScreen('start');
+  } else {
+    el('code-error').style.display = 'block';
+  }
+});
+el('input-code').addEventListener('keydown', e => {
+  if(e.key === 'Enter') el('btn-code').click();
+});
 
 // ---------- pantalla de inicio ----------
 el('start-title').textContent = CONFIG.examTitle;
