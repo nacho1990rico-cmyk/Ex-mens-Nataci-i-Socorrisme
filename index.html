@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -158,6 +158,7 @@
     <input type="text" id="gf-nota">
     <input type="text" id="gf-avisos">
     <input type="text" id="gf-motivo">
+    <input type="text" id="gf-examen">
   </form>
 
 </div>
@@ -175,7 +176,8 @@ const CONFIG = {
     entryGrupo: "entry.9384732",
     entryNota: "entry.735306376",
     entryAvisos: "entry.36221568",
-    entryMotivo: "entry.799380067"
+    entryMotivo: "entry.799380067",
+    entryExamen: "entry.370173710"
   },
   instructions: "Per cada resposta correcta se suma 1 punt. Per cada incorrecta es resta 0,50 punts. Per cada resposta no contestada ni suma ni resta, són 0 punts. Hi ha una pregunta en què totes les respostes són correctes.",
   timeLimitMinutes: 30,                        // Duración del examen en minutos
@@ -571,12 +573,14 @@ function sendToGoogleForm(score, total, reason){
     el('gf-nota').name = gf.entryNota;
     el('gf-avisos').name = gf.entryAvisos;
     el('gf-motivo').name = gf.entryMotivo;
+    el('gf-examen').name = gf.entryExamen;
 
     el('gf-nombre').value = studentName;
     el('gf-grupo').value = studentGroup;
     el('gf-nota').value = `${score} / ${total}`;
     el('gf-avisos').value = String(violationCount);
     el('gf-motivo').value = reason;
+    el('gf-examen').value = CONFIG.examTitle;
 
     form.submit();
     el('finished-status').textContent = "Resultado enviado correctamente. Ya puedes cerrar esta ventana.";
