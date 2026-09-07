@@ -181,13 +181,13 @@ const CONFIG = {
     entryMotivo: "entry.799380067",
     entryExamen: "entry.370173710"
   },
-  instructions: "Cada resposta correcta suma 1 punt. Cada resposta incorrecta resta 0,5 punts. Les preguntes en blanc no sumen ni resten.",
+  instructions: "Cada resposta correcta suma 1 punt. Cada resposta incorrecta resta 0,25 punts. Les preguntes en blanc no sumen ni resten.",
   timeLimitMinutes: 30,                        // Duración del examen en minutos
   violationLimit: 2,                           // 1 aviso, y a la siguiente salida se entrega solo
   showScoreToStudent: true,                    // true = el alumno ve su nota al entregar
 
   // Puntos por acierto, por fallo y por pregunta en blanco
-  scoring: { correct: 1, incorrect: -0.5, blank: 0 },
+  scoring: { correct: 1, incorrect: -0.25, blank: 0 },
 
   questions: [
     {
