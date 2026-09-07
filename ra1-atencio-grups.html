@@ -114,10 +114,10 @@
   <div id="screen-start" class="card hidden">
     <h1 id="start-title">Título del examen</h1>
     <p class="subtitle" id="start-subtitle"></p>
-    <label for="input-name">Nombre y apellidos</label>
-    <input type="text" id="input-name" placeholder="Ej: Marta García López" autocomplete="off">
-    <label for="input-group">Grupo o clase (opcional)</label>
-    <input type="text" id="input-group" placeholder="Ej: GES2A" autocomplete="off">
+    <label for="input-name">Nom i cognoms</label>
+    <input type="text" id="input-name" placeholder="Ex: Marta Garcia López" autocomplete="off">
+    <label for="input-group">Curs</label>
+    <input type="text" id="input-group" placeholder="Ex: GES2A" autocomplete="off">
     <button id="btn-start">Empezar examen</button>
   </div>
 
@@ -132,6 +132,7 @@
     <div id="options"></div>
     <div class="navrow">
       <button class="secondary" id="btn-prev">Anterior</button>
+      <button class="secondary" id="btn-clear">Esborra la resposta</button>
       <button id="btn-next">Siguiente</button>
     </div>
   </div>
@@ -334,9 +335,13 @@ el('exam-title-small').textContent = CONFIG.examTitle;
 
 el('btn-start').addEventListener('click', () => {
   const name = el('input-name').value.trim();
-  if(!name){ el('input-name').focus(); el('input-name').style.borderColor = 'var(--red)'; return; }
+  const group = el('input-group').value.trim();
+  let ok = true;
+  if(!name){ el('input-name').style.borderColor = 'var(--red)'; ok = false; } else { el('input-name').style.borderColor = ''; }
+  if(!group){ el('input-group').style.borderColor = 'var(--red)'; ok = false; } else { el('input-group').style.borderColor = ''; }
+  if(!ok) return;
   studentName = name;
-  studentGroup = el('input-group').value.trim();
+  studentGroup = group;
   startExam();
 });
 
@@ -403,12 +408,18 @@ function renderQuestion(){
     const div = document.createElement('div');
     div.className = 'option' + (answers[currentIndex] === i ? ' selected' : '');
     div.innerHTML = `<input type="radio" name="opt" ${answers[currentIndex]===i?'checked':''}><span>${opt}</span>`;
-    div.addEventListener('click', () => { answers[currentIndex] = i; renderQuestion(); });
+    div.addEventListener('click', () => {
+      if(answers[currentIndex] === i){ delete answers[currentIndex]; }
+      else { answers[currentIndex] = i; }
+      renderQuestion();
+    });
     wrap.appendChild(div);
   });
   el('btn-prev').disabled = currentIndex === 0;
+  el('btn-clear').disabled = answers[currentIndex] === undefined;
   el('btn-next').textContent = currentIndex === examQuestions.length - 1 ? "Revisar y entregar" : "Siguiente";
 }
+el('btn-clear').addEventListener('click', () => { delete answers[currentIndex]; renderQuestion(); });
 el('btn-prev').addEventListener('click', () => { currentIndex--; renderQuestion(); });
 el('btn-next').addEventListener('click', () => {
   if(currentIndex < examQuestions.length - 1){ currentIndex++; renderQuestion(); }
