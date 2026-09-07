@@ -559,7 +559,7 @@ function sendResultAutomatically(score, total, reason){
     statusEl.textContent = "No hay conexión configurada. Usa \"Ver resumen\" para enviarlo tú mismo/a.";
     return;
   }
-  const body = new URLSearchParams({
+  const params = new URLSearchParams({
     examen: CONFIG.examTitle,
     nombre: studentName,
     grupo: studentGroup,
@@ -567,7 +567,8 @@ function sendResultAutomatically(score, total, reason){
     avisos: String(violationCount),
     motivo: reason
   });
-  fetch(CONFIG.appsScriptUrl, { method: 'POST', mode: 'no-cors', body })
+  const url = `${CONFIG.appsScriptUrl}?${params.toString()}`;
+  fetch(url, { method: 'GET', mode: 'no-cors' })
     .then(() => { statusEl.textContent = "Resultado enviado correctamente. Ya puedes cerrar esta ventana."; })
     .catch(() => { statusEl.textContent = "No se pudo enviar (¿sin conexión?). Abre \"Ver resumen\" y avisa a tu profesor/a."; });
 }
