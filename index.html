@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -84,10 +84,20 @@
   .status-pending{ color:var(--red); font-weight:600; }
   .finished-icon{ font-size:2rem; margin-bottom:6px; }
   .note{ font-size:0.8rem; color:var(--ink-soft); margin-top:6px; line-height:1.5; }
+  #watermark{
+    position:fixed; inset:0; z-index:40; pointer-events:none;
+    display:flex; flex-wrap:wrap; align-content:space-around; justify-content:space-around;
+    opacity:0.10; overflow:hidden;
+  }
+  #watermark span{
+    display:block; transform:rotate(-30deg); font-size:0.95rem; font-weight:600;
+    color:var(--ink); white-space:nowrap; margin:26px;
+  }
 </style>
 </head>
 <body>
 <div id="violation-banner"></div>
+<div id="watermark"></div>
 <div id="app">
 
   <!-- PANTALLA DE INICIO -->
@@ -168,8 +178,8 @@ const CONFIG = {
     entryMotivo: "entry.799380067"
   },
   instructions: "Per cada resposta correcta se suma 1 punt. Per cada incorrecta es resta 0,50 punts. Per cada resposta no contestada ni suma ni resta, són 0 punts. Hi ha una pregunta en què totes les respostes són correctes.",
-  timeLimitMinutes: 45,                        // Duración del examen en minutos
-  violationLimit: 3,                           // Avisos permitidos antes de entregar automáticamente
+  timeLimitMinutes: 30,                        // Duración del examen en minutos
+  violationLimit: 2,                           // 1 aviso, y a la siguiente salida se entrega solo
   showScoreToStudent: true,                    // true = el alumno ve su nota al entregar
 
   // Puntos por acierto, por fallo y por pregunta en blanco
@@ -310,6 +320,15 @@ function slugify(s){
   return (s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")
     .replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"") || "resultado";
 }
+function shuffleArray(arr){
+  const a = arr.slice();
+  for(let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+let examQuestions = CONFIG.questions; // se mezcla de verdad al empezar el examen (ver startExam)
 
 // ---------- estado ----------
 let studentName = "", studentGroup = "";
@@ -363,12 +382,24 @@ function exitFullscreenSafe(){
 }
 
 function startExam(){
+  examQuestions = shuffleArray(CONFIG.questions);
+  fillWatermark();
   enterFullscreenSafe();
   examActive = true;
   showScreen('exam');
   renderQuestion();
   timerInterval = setInterval(tickTimer, 1000);
   updateTimerDisplay();
+}
+function fillWatermark(){
+  const label = `${studentName} · ${new Date().toLocaleDateString()}`;
+  const wm = el('watermark');
+  wm.innerHTML = "";
+  for(let i = 0; i < 40; i++){
+    const span = document.createElement('span');
+    span.textContent = label;
+    wm.appendChild(span);
+  }
 }
 
 function tickTimer(){
@@ -390,8 +421,8 @@ function updateTimerDisplay(){
 
 // ---------- preguntas ----------
 function renderQuestion(){
-  const q = CONFIG.questions[currentIndex];
-  el('progress-label').textContent = `Pregunta ${currentIndex+1} de ${CONFIG.questions.length}`;
+  const q = examQuestions[currentIndex];
+  el('progress-label').textContent = `Pregunta ${currentIndex+1} de ${examQuestions.length}`;
   el('qtext').textContent = q.text;
   const wrap = el('options');
   wrap.innerHTML = "";
@@ -403,11 +434,11 @@ function renderQuestion(){
     wrap.appendChild(div);
   });
   el('btn-prev').disabled = currentIndex === 0;
-  el('btn-next').textContent = currentIndex === CONFIG.questions.length - 1 ? "Revisar y entregar" : "Siguiente";
+  el('btn-next').textContent = currentIndex === examQuestions.length - 1 ? "Revisar y entregar" : "Siguiente";
 }
 el('btn-prev').addEventListener('click', () => { currentIndex--; renderQuestion(); });
 el('btn-next').addEventListener('click', () => {
-  if(currentIndex < CONFIG.questions.length - 1){ currentIndex++; renderQuestion(); }
+  if(currentIndex < examQuestions.length - 1){ currentIndex++; renderQuestion(); }
   else { showReview(); }
 });
 
@@ -415,7 +446,7 @@ function showReview(){
   showScreen('review');
   const list = el('review-list');
   list.innerHTML = "";
-  CONFIG.questions.forEach((q, i) => {
+  examQuestions.forEach((q, i) => {
     const li = document.createElement('li');
     const answered = answers[i] !== undefined;
     li.innerHTML = `<span>Pregunta ${i+1}</span><span class="${answered?'status-ok':'status-pending'}">${answered?'Respondida':'Sin responder'}</span>`;
@@ -433,7 +464,9 @@ function handleViolation(reason){
   lastViolationTime = now;
   violations.push({ reason, time: new Date().toISOString() });
   violationCount++;
-  showBanner(`Aviso ${violationCount} de ${CONFIG.violationLimit}: se ha detectado ${reason}.`);
+  if(violationCount < CONFIG.violationLimit){
+    showBanner("Avís: has sortit de la pantalla de l'examen. Si torna a passar, l'examen s'acabarà i s'entregarà automàticament.");
+  }
   if(violationCount >= CONFIG.violationLimit){
     submitExam("entregado automáticamente por exceso de salidas de pantalla");
   }
@@ -480,7 +513,7 @@ function isCorrectAnswer(q, given){
 function computeScore(){
   const s = CONFIG.scoring || { correct: 1, incorrect: -0.5, blank: 0 };
   let total = 0;
-  CONFIG.questions.forEach((q, i) => {
+  examQuestions.forEach((q, i) => {
     const given = answers[i];
     if(given === undefined) total += s.blank;
     else if(isCorrectAnswer(q, given)) total += s.correct;
@@ -490,7 +523,7 @@ function computeScore(){
 }
 function maxPossibleScore(){
   const s = CONFIG.scoring || { correct: 1 };
-  return Math.round(CONFIG.questions.length * s.correct * 100) / 100;
+  return Math.round(examQuestions.length * s.correct * 100) / 100;
 }
 
 function buildSummary(score, total, reason){
@@ -550,6 +583,7 @@ function sendToGoogleForm(score, total, reason){
   }catch(err){
     el('finished-status').textContent = "No se pudo enviar automáticamente. Abre \"Ver resumen\" abajo y avisa a tu profesor/a.";
   }
+}
 
 function setupResultActions(summary){
   const copyBtn = el('btn-copy');
