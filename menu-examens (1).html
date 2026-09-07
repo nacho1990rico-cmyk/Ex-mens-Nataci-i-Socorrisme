@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exàmens</title>
+<style>
+  :root{
+    --paper: #EEF1F2;
+    --card: #FFFFFF;
+    --ink: #1B2430;
+    --ink-soft: #4A5568;
+    --line: #C9CDD1;
+    --red: #A63D2F;
+    --teal: #3E6259;
+    --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', serif;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{ box-sizing: border-box; }
+  html,body{
+    margin:0; padding:0; min-height:100vh;
+    background:var(--paper); color:var(--ink);
+    font-family:var(--sans);
+  }
+  #app{ min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:48px 16px; }
+  .card{
+    width:100%; max-width:560px; background:var(--card);
+    border-top:4px solid var(--red);
+    box-shadow: 0 1px 2px rgba(27,36,48,0.08);
+    padding:32px 28px;
+  }
+  h1{ font-family:var(--serif); font-size:1.5rem; margin:0 0 4px; }
+  .subtitle{ color:var(--ink-soft); font-size:0.9rem; margin:0 0 24px; }
+  ul{ list-style:none; margin:0; padding:0; }
+  li{ margin-bottom:12px; }
+  a.exam-link{
+    display:block; padding:16px 18px; text-decoration:none;
+    border:1px solid var(--line); color:var(--ink); font-weight:600;
+    transition: border-color 0.15s;
+  }
+  a.exam-link:hover{ border-color:var(--teal); }
+  a.exam-link small{ display:block; font-weight:400; color:var(--ink-soft); margin-top:4px; }
+  .note{ font-size:0.8rem; color:var(--ink-soft); margin-top:24px; line-height:1.5; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="card">
+    <h1>Exàmens disponibles</h1>
+    <p class="subtitle">Selecciona l'examen corresponent.</p>
+    <ul id="exam-list"></ul>
+    <p class="note">Aquesta pàgina és només un índex d'accés ràpid. Per afegir un examen nou, edita la llista EXAMS al principi del codi d'aquest fitxer.</p>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   ✏️  EDITA AQUÍ para añadir o quitar exámenes de la lista
+   ============================================================ */
+const EXAMS = [
+  { title: "Socorrisme - RA 1", file: "index.html" },
+  { title: "Atenció a grups - RA 1", file: "ra1-atencio-grups.html" }
+];
+/* ============================================================ */
+
+const list = document.getElementById('exam-list');
+EXAMS.forEach(exam => {
+  const li = document.createElement('li');
+  const a = document.createElement('a');
+  a.className = 'exam-link';
+  a.href = exam.file;
+  a.textContent = exam.title;
+  li.appendChild(a);
+  list.appendChild(li);
+});
+</script>
+</body>
+</html>
