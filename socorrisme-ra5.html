@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -99,6 +99,12 @@
 <div id="violation-banner"></div>
 <div id="watermark"></div>
 <div id="app">
+
+  <!-- PANTALLA DE EXAMEN YA COMPLETADO EN ESTE DISPOSITIVO -->
+  <div id="screen-done" class="card hidden">
+    <h1>Examen ja completat</h1>
+    <p class="subtitle">Ja has fet aquest examen des d'aquest dispositiu. Si creus que és un error, parla amb el teu professor/a.</p>
+  </div>
 
   <!-- PANTALLA DE CÓDIGO DE ACCESO -->
   <div id="screen-code" class="card hidden">
@@ -329,7 +335,7 @@ let timerInterval = null;
 // ---------- elementos ----------
 const el = id => document.getElementById(id);
 const screens = {
-  code: el('screen-code'), start: el('screen-start'), exam: el('screen-exam'),
+  done: el('screen-done'), code: el('screen-code'), start: el('screen-start'), exam: el('screen-exam'),
   review: el('screen-review'), finished: el('screen-finished')
 };
 function showScreen(name){
@@ -337,8 +343,11 @@ function showScreen(name){
   screens[name].classList.remove('hidden');
 }
 
-// ---------- código de acceso ----------
-if(CONFIG.accessCode){
+// ---------- comprobar si ya se hizo este examen en este dispositivo ----------
+const COMPLETION_KEY = `examen_completat_${slugify(CONFIG.examTitle)}`;
+if(localStorage.getItem(COMPLETION_KEY)){
+  showScreen('done');
+} else if(CONFIG.accessCode){
   showScreen('code');
 } else {
   showScreen('start');
@@ -554,6 +563,7 @@ function submitExam(reason){
   if(finished) return;
   finished = true;
   examActive = false;
+  try{ localStorage.setItem(COMPLETION_KEY, '1'); }catch(e){}
   clearInterval(timerInterval);
   exitFullscreenSafe();
 
