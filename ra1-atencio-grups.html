@@ -67,13 +67,17 @@
   .option.selected{ border-color:var(--teal); background:var(--teal-soft); }
   .option input{ margin-top:3px; }
   .navrow{ display:flex; justify-content:space-between; margin-top:26px; }
-  #violation-banner{
-    position:fixed; top:0; left:0; right:0; z-index:50;
-    background:var(--red); color:#fff; text-align:center;
-    padding:14px 16px; font-size:0.95rem; font-weight:600;
-    transform:translateY(-100%); transition:transform 0.25s ease;
+  .violation-overlay{
+    position:fixed; inset:0; z-index:60;
+    background:rgba(27,36,48,0.6);
+    display:flex; align-items:center; justify-content:center; padding:20px;
   }
-  #violation-banner.visible{ transform:translateY(0); }
+  .violation-overlay.hidden{ display:none !important; }
+  .violation-card{
+    background:#fff; max-width:420px; width:100%;
+    border-top:4px solid var(--red); padding:28px 24px; text-align:center;
+  }
+  .violation-card p{ font-size:1.05rem; line-height:1.5; margin:0 0 22px; color:var(--ink); }
   .reviewlist{ list-style:none; margin:0 0 22px; padding:0; }
   .reviewlist li{
     display:flex; justify-content:space-between; align-items:center;
@@ -96,7 +100,12 @@
 </style>
 </head>
 <body>
-<div id="violation-banner"></div>
+<div id="violation-overlay" class="violation-overlay hidden">
+  <div class="violation-card">
+    <p id="violation-text"></p>
+    <button id="btn-violation-ok">Ho he llegit</button>
+  </div>
+</div>
 <div id="watermark"></div>
 <div id="app">
 
@@ -460,20 +469,19 @@ function handleViolation(reason){
   violations.push({ reason, time: new Date().toISOString() });
   violationCount++;
   if(violationCount < CONFIG.violationLimit){
-    showBanner("Avís: has sortit de la pantalla de l'examen. Si torna a passar, l'examen s'acabarà i s'entregarà automàticament.");
+    showViolationModal("Avís: has sortit de la pantalla de l'examen. Si torna a passar, l'examen s'acabarà i s'entregarà automàticament.");
   }
   if(violationCount >= CONFIG.violationLimit){
     submitExam("entregado automáticamente por exceso de salidas de pantalla");
   }
 }
-let bannerTimeout = null;
-function showBanner(msg){
-  const b = el('violation-banner');
-  b.textContent = msg;
-  b.classList.add('visible');
-  clearTimeout(bannerTimeout);
-  bannerTimeout = setTimeout(() => b.classList.remove('visible'), 4000);
+function showViolationModal(msg){
+  el('violation-text').textContent = msg;
+  el('violation-overlay').classList.remove('hidden');
 }
+el('btn-violation-ok').addEventListener('click', () => {
+  el('violation-overlay').classList.add('hidden');
+});
 document.addEventListener('visibilitychange', () => {
   if(examActive && document.hidden) handleViolation("un cambio de pestaña o de aplicación");
 });
