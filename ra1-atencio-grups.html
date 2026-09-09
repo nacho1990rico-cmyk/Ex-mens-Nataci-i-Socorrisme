@@ -328,8 +328,9 @@ function showScreen(name){
 }
 
 // ---------- comprobar si ya se hizo este examen en este dispositivo ----------
+const TEST_MODE = new URLSearchParams(window.location.search).has('test');
 const COMPLETION_KEY = `examen_completat_${slugify(CONFIG.examTitle)}`;
-if(localStorage.getItem(COMPLETION_KEY)){
+if(!TEST_MODE && localStorage.getItem(COMPLETION_KEY)){
   showScreen('done');
 } else if(CONFIG.accessCode){
   showScreen('code');
