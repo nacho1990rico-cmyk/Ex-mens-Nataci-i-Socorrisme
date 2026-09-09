@@ -589,7 +589,7 @@ el('btn-submit').addEventListener('click', () => submitExam("entregado por el al
 function handleViolation(reason){
   if(!examActive || finished) return;
   const now = Date.now();
-  if(now - lastViolationTime < 1500) return;
+  if(now - lastViolationTime < 3000) return;
   lastViolationTime = now;
   violations.push({ reason, time: new Date().toISOString() });
   violationCount++;
@@ -671,6 +671,7 @@ function submitExam(reason){
   if(finished) return;
   finished = true;
   examActive = false;
+  el('violation-overlay').classList.add('hidden');
   try{ localStorage.setItem(COMPLETION_KEY, '1'); }catch(e){}
   clearInterval(timerInterval);
   exitFullscreenSafe();
@@ -689,6 +690,17 @@ function submitExam(reason){
   sendResultAutomatically(score, total, reason);
 }
 
+function buildAnswerDetail(){
+  const letters = ['a', 'b', 'c', 'd', 'e', 'f'];
+  return CONFIG.questions.map((q, origIdx) => {
+    const shownIdx = examQuestions.indexOf(q);
+    const given = answers[shownIdx];
+    const letter = given === undefined ? '-' : letters[given];
+    const estat = given === undefined ? 'blanc' : (isCorrectAnswer(q, given) ? 'correcta' : 'incorrecta');
+    return `${origIdx + 1}:${letter}(${estat})`;
+  }).join(', ');
+}
+
 function sendResultAutomatically(score, total, reason){
   const statusEl = el('finished-status');
   if(!CONFIG.appsScriptUrl){
@@ -702,7 +714,8 @@ function sendResultAutomatically(score, total, reason){
     grupo: studentGroup,
     nota: `${score} / ${total}`,
     avisos: String(violationCount),
-    motivo: reason
+    motivo: reason,
+    respostes: buildAnswerDetail()
   });
   const url = `${CONFIG.appsScriptUrl}?${params.toString()}`;
   statusEl.textContent = "Resultado enviado correctamente. Ya puedes cerrar esta ventana.";
