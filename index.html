@@ -199,13 +199,13 @@ const CONFIG = {
     entryMotivo: "entry.799380067",
     entryExamen: "entry.370173710"
   },
-  instructions: "Per cada resposta correcta se suma 1 punt. Per cada incorrecta es resta 0,50 punts. Per cada resposta no contestada ni suma ni resta, són 0 punts. Hi ha una pregunta en què totes les respostes són correctes.",
+  instructions: "Per cada resposta correcta se suma 1 punt. Per cada incorrecta es resta 0,33 punts. Per cada resposta no contestada ni suma ni resta, són 0 punts. Hi ha una pregunta en què totes les respostes són correctes.",
   timeLimitMinutes: 30,                        // Duración del examen en minutos
   violationLimit: 2,                           // 1 aviso, y a la siguiente salida se entrega solo
   showScoreToStudent: true,                    // true = el alumno ve su nota al entregar
 
   // Puntos por acierto, por fallo y por pregunta en blanco
-  scoring: { correct: 1, incorrect: -0.5, blank: 0 },
+  scoring: { correct: 1, incorrect: -0.33, blank: 0 },
 
   questions: [
     {
@@ -513,7 +513,7 @@ el('btn-submit').addEventListener('click', () => submitExam("entregado por el al
 function handleViolation(reason){
   if(!examActive || finished) return;
   const now = Date.now();
-  if(now - lastViolationTime < 1500) return;
+  if(now - lastViolationTime < 3000) return;
   lastViolationTime = now;
   violations.push({ reason, time: new Date().toISOString() });
   violationCount++;
@@ -595,6 +595,7 @@ function submitExam(reason){
   if(finished) return;
   finished = true;
   examActive = false;
+  el('violation-overlay').classList.add('hidden');
   try{ localStorage.setItem(COMPLETION_KEY, '1'); }catch(e){}
   clearInterval(timerInterval);
   exitFullscreenSafe();
@@ -613,6 +614,17 @@ function submitExam(reason){
   sendResultAutomatically(score, total, reason);
 }
 
+function buildAnswerDetail(){
+  const letters = ['a', 'b', 'c', 'd', 'e', 'f'];
+  return CONFIG.questions.map((q, origIdx) => {
+    const shownIdx = examQuestions.indexOf(q);
+    const given = answers[shownIdx];
+    const letter = given === undefined ? '-' : letters[given];
+    const estat = given === undefined ? 'blanc' : (isCorrectAnswer(q, given) ? 'correcta' : 'incorrecta');
+    return `${origIdx + 1}:${letter}(${estat})`;
+  }).join(', ');
+}
+
 function sendResultAutomatically(score, total, reason){
   const statusEl = el('finished-status');
   if(!CONFIG.appsScriptUrl){
@@ -626,7 +638,8 @@ function sendResultAutomatically(score, total, reason){
     grupo: studentGroup,
     nota: `${score} / ${total}`,
     avisos: String(violationCount),
-    motivo: reason
+    motivo: reason,
+    respostes: buildAnswerDetail()
   });
   const url = `${CONFIG.appsScriptUrl}?${params.toString()}`;
   statusEl.textContent = "Resultado enviado correctamente. Ya puedes cerrar esta ventana.";
